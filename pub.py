@@ -3,54 +3,63 @@
 
 # In[ ]:
 
-
 import paho.mqtt.client as mqtt
-import numpy as np
 import time
-msg_cnt = 0
-time.sleep(1)
-# 0. define callbacks - functions that run when events happen.
+pub_topic = "ece180d/team6/test/as/pub"
+client_topic = "ece180d/team6/test/as/client"
+
+# 0. define callbacks - functions that run when events happen. 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
 	print("Connection returned result: "+str(rc))
-	# Subscribing in on_connect() means that if we lose the connection and
-	# reconnect then subscriptions will be renewed.
-	# client.subscribe("ece180d/team6/test")
-# The callback of the client when it disconnects.
-def on_disconnect(client, userdata, rc):
-	if rc != 0:
+  	# Subscribing in on_connect() means that if we lose the connection and
+  	# reconnect then subscriptions will be renewed.
+	client.subscribe(pub_topic, qos=1) 
+
+# The callback of the client when it disconnects. 
+def on_disconnect(client, userdata, rc): 
+	if rc != 0: 
 		print('Unexpected Disconnect')
 	else:
 		print('Expected Disconnect')
-# The default message callback.
-# (won’t be used if only publishing, but can still exist)
-def on_message(client, userdata, message):
-	print('Received message: "' + str(message.payload) + '" on topic "' + message.topic + '" with QoS ' + str(message.qos))
-	msg = f'messages: {msg_cnt}'
-	client.publish('ece180d/team6/test', msg, qos=1)
-	msg_cnt+=1
-	
-# 1. create a client instance.
+
+# The default message callback. 
+# (you can create separate callbacks per subscribed topic)
+def on_message(client, userdata, message): 
+	print('Received message: "' + str(message.payload) + '" on topic "' +  message.topic + '" with QoS ' + str(message.qos))
+	startIndex = str(message.payload).find('\'')
+	endIndex = str(message.payload).find('\'', startIndex + 1)
+	print(str(message.payload)[startIndex + 1:endIndex])
+	msg_cnt = int(str(message.payload)[startIndex + 1:endIndex]) + 1
+	time.sleep(3)
+	msg = str(msg_cnt)
+	client.publish(client_topic, msg, qos=1)
+
+# 1. create a client instance. 
 client = mqtt.Client()
 # add additional client options (security, certifications, etc.)
 # many default options should be good to start off.
-# add callbacks to client.
+# add callbacks to client. 
 client.on_connect = on_connect
 client.on_disconnect = on_disconnect
 client.on_message = on_message
-# 2. connect to a broker using one of the connect*() functions.
-client.connect_async("test.mosquitto.org")
-# 3. call one of the loop*() functions to maintain network traffic flow with the broker.
-client.loop_start()
-# 4. use subscribe() to subscribe to a topic and receive messages.
-# 5. use publish() to publish messages to the broker.
-# payload must be a string, bytearray, int, float or None.
-print('Publishing...')
-msg = f'messages: {msg_cnt}'
-client.publish('ece180d/team6/test', str(msg_cnt), qos=1)
-msg_cnt+=1
 
-# 6. use disconnect() to disconnect from the broker.
+
+# 2. connect to a broker using one of the connect*() functions. 
+client.connect_async("test.mosquitto.org")
+# client.connect("test.mosquitto.org", 1883, 60)
+# client.connect("mqtt.eclipse.org")
+
+# 3. call one of the loop*() functions to maintain network traffic flow with the broker. 
+client.loop_start()
+# client.loop_forever()
+
+while True: # perhaps add a stopping condition using some break or something.
+  pass # do your non-blocked other stuff here, like receive IMU data or something.
+# use subscribe() to subscribe to a topic and receive messages. 
+
+# use publish() to publish messages to the broker. 
+
+# use disconnect() to disconnect from the broker. 
 client.loop_stop()
 client.disconnect()
-
